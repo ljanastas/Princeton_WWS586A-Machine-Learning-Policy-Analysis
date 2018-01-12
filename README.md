@@ -11,4 +11,4 @@ Materials from my Princeton University course WWS586A: Machine Learning for Poli
 
 * Introduction to statistical learning theory
 
-* Machine learning for infe
+* Training, testing and cross-validation
