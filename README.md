@@ -12,6 +12,6 @@ Materials from my Princeton University course WWS586A: Machine Learning for Poli
 * Introduction to statistical learning theory
 
 * Linear regression
-** Test
+
 
 * Machine learning basics: training, testing and cross-validation
