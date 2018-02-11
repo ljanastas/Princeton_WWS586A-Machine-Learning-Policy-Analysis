@@ -1,0 +1,368 @@
+---
+title: '[WWS 586A]: Introduction to R'
+author: "Jason Anastasopoulos"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+## Introduction to R Tutorial
+
+Before we move on to all of the fun machine learning material, we first need to get acquianted with some of the things that R can do and some of the basic knowledge that you'll need to work with data in R.
+
+For this introduction we will learn how to:
+
+* Import and export data in R.
+* Packages in R. 
+* Basic data summarization and visualizations.
+* Control structures
+  + Creating functions.
+  + For, if, while and all that.
+* Basic statistical inference:
+  + Linear regression.
+  + Logistic regression.
+  
+  
+This will all be done using some very messy [Stop, Question and Frisk Data from the NYPD](https://www1.nyc.gov/site/nypd/stats/reports-analysis/stopfrisk.page) which contains information about over 100,000 police citizen interactions between 2003-2016 so let's get started!
+
+## Importing and exporting data in R
+
+* Importing data from a local directory.
+* Importing data from Github and other websites.
+
+The first thing that we will want to do is to be able to use R to import and export data. There are many different ways to do this and in this tutorial, I will show you how to load data into R from your **local directory** and how to **load data from Github** and websites more generally.
+
+### Packages
+
+One of the things that makes R such a powerful statistical tool are the freely available and high quality packages which are constantly being written by users almost daily. For our purposes we will be loading two packages: 
+
+* **foreign** package which allows for the important of .csv, .dta and other file types and;
+* **RCurl** which provides a set of tools that allow you to connect R to the internet. 
+
+```{r}
+library(foreign)
+library(RCurl)
+```
+If get the following error message when you try to load the library, then you have to first install the package:
+
+
+**Error in library(RCurl) : there is no package called ‘RCurl’**
+
+
+So try:
+
+```{r}
+install.packages("foreign", repos = "http://cran.us.r-project.org")
+install.packages("RCurl", repos = "http://cran.us.r-project.org")
+```
+
+and then run: 
+
+```{r}
+library(foreign)
+library(RCurl)
+```
+
+### Importing data from a local directory
+
+This is relatively easy to do. First, find out where your data is located, go into your working directory and then just load the data from your working directory.
+
+```{r}
+rm(list = ls()) # This cleans up the workspace
+
+localdir = "/Users/jason/Dropbox/Princeton-Classes-Spring-2018/Applied Machine Learning/WWS586A-Machine-Learning-Policy-Analysis/Data"
+
+setwd(localdir) #This will set your working directory to the right place
+
+list.files(localdir) # What are the files in the local directory?
+```
+
+
+Looks good! Now let's load the data
+
+```{r}
+setwd(localdir)
+
+stopandfrisk2016<-read.csv("stop-and-frisk2016.csv") # Use the "read.csv" function to load the data
+
+ls() # check to see if the data is loaded
+```
+
+
+### Importing data from the web/Github
+
+```{r}
+stopandfrisk2016<-
+  read.csv(
+    text=getURL("https://raw.githubusercontent.com/ljanastas/WWS586A-Machine-Learning-Policy-Analysis/master/Data/stop-and-frisk2016.csv"),  
+           header=T)
+```
+
+
+## Basic Data Summarization and Visualization
+
+Now that we have all of the data that we want loaded, let's first get a sense of the dimensionality of the data:
+
+```{r}
+dim(stopandfrisk2016)
+```
+
+This tells us that we have 12,405 observations (stops) and have 112 variables which were collected for the stops. 
+
+If we're interested in taking a look at data we can use:
+
+```{r}
+head(stopandfrisk2016)
+```
+
+
+
+Imagine that we are interested in determining some of the individual level correlates of being arrested and we are most concerned that race is being used by officers as a factor for arresting suspects. Let's explore the connection between the following varibles:
+
+* **arstmade** - Was an arrest made?
+* **race** - Race of the suspect.
+* **timestop** - Time that the suspect was stopped. 
+* **datestop** - Date that the suspect was stopped. 
+* **age** - Suspect's age.
+
+
+```{r}
+attach(stopandfrisk2016) #Allows us to more easily access the variables.
+
+# Let's check out what these variables look like
+summary(arstmade)
+
+summary(race)
+
+summary(age)
+```
+
+
+Let's create a plot of arrests made vs. race
+
+```{r}
+plot(race,arstmade, main = "Race vs. Arrests Made", ylab="Arrest Made?", xlab = "Suspect Race")
+```
+
+
+Let's also save the file as a PNG image: 
+```{r}
+setwd("/Users/jason/Dropbox/Princeton-Classes-Spring-2018/Applied Machine Learning/WWS586A-Machine-Learning-Policy-Analysis/Data")
+
+# Let's also save the plot as a png file
+png("racevarrest.png")
+plot(race,arstmade, main = "Race vs. Arrests Made", ylab="Arrest Made?", xlab = "Suspect Race")
+dev.off()
+```
+
+What if we wanted a distribution of age among white and black suspects?
+
+```{r}
+# First we have to format the variables
+head(age)
+
+newage<-as.numeric(age) # age is actually non-numeric so we change it to numeric
+
+hist(newage, main = "Distribution of Suspect Age", xlab = "Suspect Age")
+```
+
+What is the distrbution of ages by those who are arrested vs. not?
+
+```{r}
+# Distribution of those that are arrested
+hist(newage[arstmade == "Y"], main = "Distribution of Arrested Suspect Age",xlab = "Suspect Age", col = "Red")
+```
+
+```{r}
+# Distribution of those that are not arrested
+hist(newage[arstmade == "N"], main = "Distribution of Non-Arrested Suspect Age",xlab = "Suspect Age", col = "Green")
+```
+
+You can also draw a scatterplot of age vs. time that the suspect was stopped:
+
+```{r}
+plot(timestop,newage,main = "Time stopped vs. age", xlab = "Time Stopped", ylab = "Age",col="Navy")
+```
+
+
+How about getting the mean and other descriptive statistics?
+
+```{r}
+summary(newage)
+
+mean(newage)
+
+sd(newage)
+```
+
+
+## Control structures
+
+Oftentimes you will need to write loops (for, while), conditional statements (if-then) and functions when using **R** for a variety of reasons. Let's take the following example. Imagine that you want to change the labels for the "arstmade" (Arrest made) variable from "Y" and "N" to "Yes" and "No". You can accomplish this using all of the control structures that we just mentioned.
+
+### Using "for" loops
+There are two ways to write for loops. You can either write them as "for i  in 1:N" where N is the number of iterations/observations etc that you want to loop through OR you can write the loop as "for x in Object."
+
+Method 1 "for i in 1:N"
+```{r}
+newarrest<-c() # Create an empty vector to store the new observations in.
+
+N<-length(arstmade) # This is he length of the "arstmade" variable.
+
+# Loop through and check your work
+
+for(i in 1:N){
+  yesno = arstmade[i]
+  if(yesno == "Y"){ # If the observation is "Y" then...
+      newarrest[i] = "Yes" # ith element of newarrest is "Yes"
+  }
+  else {
+    newarrest[i] = "No"
+  }
+}
+
+# Did it work?
+head(newarrest)
+```
+
+
+Method 2 "for x in Object"
+```{r}
+newarrest<-c() # Create an empty vector to store the new observations in.
+
+# Loop through and check your work
+
+for(x in arstmade){
+  yesno = x
+  if(yesno == "Y"){ # If the observation is "Y" then...
+      newarrest<-c(newarrest,"Yes") # ith element of newarrest is "Yes"
+  }
+  else {
+     newarrest<-c(newarrest,"No")
+  }
+}
+
+# Did it work?
+head(newarrest)
+```
+
+
+### Using built in functions
+
+Method 3 using an "ifelse" statement
+
+```{r}
+newarrest<-ifelse(arstmade == "Y", "Yes","No") # ifelse(condition, then "?", else "?")
+head(newarrest)
+```
+
+
+
+### Writing your own function
+
+Perhaps you might find it convenient to write your own function so that anytime a variable has a "Y" or an "N" in it, it will get converted to a "Yes" or a "No".
+
+```{r}
+yesno<-function(oldvariable,newvariable){
+  # Test if this is approriate to use
+  if(sum(levels(oldvariable) =="Y") > 0 | sum(levels(oldvariable) =="N") > 0){
+    newvariable<-ifelse(oldvariable == "Y", "Yes","No")
+    return(newvariable)
+  }
+  else{
+    print("Error: Your variable does not have a Y or N")
+  }
+}
+# Load the function
+```
+
+Create a new variable called "newarrest" using the function
+
+```{r}
+newarrest = yesno(arstmade,newarrest)
+head(newarrest)
+```
+
+What if we put another variable in?
+
+```{r}
+newarrest = yesno(timestop,newarrest)
+```
+
+
+
+## Basic statistical inference
+**R** has an amazing array tools to conduct statistical inference, do text analysis and train machine learning algorithms. Just to give you a sense of how to estimate statistical models I will estimate a linear and logistic regression model which models arrest as a function of the charachteristics of the suspect.
+
+### Linear regression model
+$$
+Arrest = \alpha +  \beta_1 White + \beta_2 Black + \beta_3 Time + \beta_4 Age + \epsilon
+$$
+
+I will not going into the details about linear regression here but will just show you how to estimate these model parameters and get predicted values which will often be necessary for some of the machine learning algorithms that we will be dealing with. 
+
+```{r}
+# First we have to create variables for white and black
+White = ifelse(race == "W", 1,0)
+Black = ifelse(race == "B", 1,0)
+Arrest =ifelse(arstmade == "Y", 1, 0)
+Time = timestop
+Age = newage
+
+linear.model.1<-lm(Arrest~White+Black +Time + Age)
+summary(linear.model.1)
+```
+
+What if we wanted to get the predicted values from this model?
+
+$$
+\widehat{Arrest} = \alpha +  b_1 White + b_2 Black + b_3 Time + b_4 Age 
+$$
+
+```{r}
+predvals.lm1<-predict(linear.model.1)
+hist(predvals.lm1)
+```
+
+
+### Logistic regression model
+
+For logistic regression, we model arrests as a function of the covariates using the logit link function:
+
+
+$$
+logit(\mathbb{E}(Arrests | X))  = \alpha +  \beta_1 White + \beta_2 Black + \beta_3 Time + \beta_4 Age + \epsilon
+$$
+
+Where
+
+$$
+logit(\mathbb{E}(Arrests | X)) = \frac{\mathbb{P}(Arrests | X)}{1-\mathbb{P}(Arrests | X) }
+$$
+
+
+```{r}
+logit.model.1 = glm(Arrest~White+Black + Time  + Age, family = binomial(link="logit"))
+summary(logit.model.1)
+```
+
+Let's retrieve the predicted probabilities and compare them by race:
+
+$$
+\mathbb{P}(Arrest | X) = \frac{1}{1+ exp(a + b_1 White+ b_2 Black +b_3 Time + b_4 Age)}
+$$
+```{r}
+probs = predict(logit.model.1,type="response")
+hist(probs)
+```
+
+What's the predicted arrest probability for black and white suspects?
+```{r}
+mean(probs[Black == 1]) # For black suspects
+```
+
+```{r}
+mean(probs[White == 1]) # For white suspects
+```
+
+
