@@ -2,8 +2,9 @@
 title: '[WWS 586A]: Introduction to R'
 author: "Jason Anastasopoulos"
 output:
-  html_document: default
+  pdf_document: default
   html_notebook: default
+  html_document: default
 ---
 
 ## Introduction to R Tutorial
