@@ -1,0 +1,486 @@
+---
+title: "Supervised Learning with Text I"
+author: "L. Jason Anastasopoulos"
+date: "3/7/2018"
+output: ioslides_presentation
+---
+```{r, echo=FALSE, cache=FALSE, include=FALSE}
+library(pacman)
+
+# This loads and installs the packages you need at once
+pacman::p_load(tm,SnowballC,foreign,plyr,twitteR,slam,foreign,wordcloud,LiblineaR,e1071,caret)
+
+text_cleaner<-function(corpus, rawtext){
+  tempcorpus = lapply(corpus,toString)
+    for(i in 1:length(tempcorpus)){
+  tempcorpus[[i]]<-iconv(tempcorpus[[i]], "ASCII", "UTF-8", sub="")
+    }
+if(rawtext == TRUE){
+  tempcorpus = lapply(tempcorpus, function(t) t$getText())
+}
+  tempcorpus = lapply(tempcorpus, tolower)
+  tempcorpus<-Corpus(VectorSource(tempcorpus))
+  tempcorpus<-tm_map(tempcorpus,
+                    removePunctuation)
+  tempcorpus<-tm_map(tempcorpus,
+                    removeNumbers)
+  tempcorpus<-tm_map(tempcorpus,
+                     removeWords, stopwords("english"))
+  tempcorpus<-tm_map(tempcorpus, 
+                    stemDocument)
+    tempcorpus<-tm_map(tempcorpus,
+                    stripWhitespace)
+  return(tempcorpus)
+}
+
+trumptweets <- read.csv("https://www.ocf.berkeley.edu/~janastas/trump-tweet-data.csv")
+
+tweets<-trumptweets$Text
+
+newcorpus<-text_cleaner(tweets, rawtext = FALSE)
+
+# Create a document term matrix
+dtm <- DocumentTermMatrix(newcorpus)
+dtm = removeSparseTerms(dtm, 0.99) # Reduce sparsity
+
+
+# Create TF-IDF
+dtm<-DocumentTermMatrix(newcorpus, control = list(weighting = weightTfIdf))
+dtm<-removeSparseTerms(dtm, 0.99)
+dtm_mat<-as.matrix(dtm)
+
+viraltweets<-ifelse(trumptweets$Retweets > 613, 1,0)
+nonviraltweets<-ifelse(trumptweets$Retweets < 613, 1,0)
+
+viral_indices <- which(viraltweets == 1)
+nonviral_indices <- which(nonviraltweets == 1)
+
+# Naive Bayes with tweets ##########
+
+train=sample(1:dim(trumptweets)[1],
+             dim(trumptweets)[1]*0.8)
+dtm_mat<-as.matrix(dtm)
+trainX = dtm_mat[train,]
+testX = dtm_mat[-train,]
+trainY = viraltweets[train]
+testY = viraltweets[-train]
+
+traindata<-data.frame(trainY,trainX)
+testdata<-data.frame(factor(testY),testX)
+
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
+
+set.seed(3333)
+
+nb_fit <- train(factor(trainY) ~., data = traindata, 
+                 method = "naive_bayes",
+                 trControl=trctrl)
+
+# Now predict on the test set 
+test_pred <- predict(nb_fit, newdata = testdata)
+
+confusionMatrix(test_pred, factor(testY) )
+
+###########################
+train=sample(1:dim(trumptweets)[1],
+             dim(trumptweets)[1]*0.5)
+dtm_mat<-as.matrix(dtm)
+trainX = dtm_mat[train,]
+testX = dtm_mat[-train,]
+trainY = viraltweets[train]
+testY = viraltweets[-train]
+
+# Sparse Logistic regression with text
+# Split sample into training and test
+train=sample(1:dim(trumptweets)[1],
+             dim(trumptweets)[1]*0.5)
+dtm_mat<-as.matrix(dtm)
+trainX = dtm_mat[train,]
+testX = dtm_mat[-train,]
+trainY = viraltweets[train]
+testY = viraltweets[-train]
+
+# Sparse logistic regression with L2 loss ("type = 7")
+m=LiblineaR(data=trainX,target=trainY,
+            type=7,bias=TRUE,verbose=FALSE)
+
+
+# Predict using the test set
+
+p=predict(m,testX)
+
+
+# create confusion matrix
+confusion=table(p$predictions,
+          testY)
+confusion
+
+# calculate accuracy, sensitivity,specificity
+
+accuracy<-(1438+39)/sum(confusion)
+accuracy
+specificity<-39/(439+39)
+specificity
+sensitivity<-1438/(1438+43)
+sensitivity
+
+
+# Naive bayes classification
+
+# Split sample into training and test
+
+# Create a document term matrix
+dtm <- DocumentTermMatrix(newcorpus)
+
+
+train=sample(1:dim(trumptweets)[1],
+             dim(trumptweets)[1]*0.5)
+dtm_mat<-as.matrix(dtm)
+trainX = dtm_mat[train,]
+testX = dtm_mat[-train,]
+trainY = viraltweets[train]
+testY = viraltweets[-train]
+
+five_times_words <- findFreqTerms(dtm, 5)
+length(five_times_words)
+five_times_words[1:10]
+
+```
+
+## From last time...
+
+1. Learned how to acquire text data using APIs.
+
+2. Learned how to clean and prepare text data for analysis.
+
+3. Built a document-term matrix.
+
+## For today
+
+#. **Further text processing** -  Sparsity Reduction, TF-IDF Matrix
+
+#. **Building supervised machine learning classifiers with text data** - Naive Bayes.
+
+#. **Assessing the performance of classifiers.** 
+
+## Building a pipeline
+
+```{r}
+text_cleaner<-function(corpus){
+  tempcorpus = lapply(corpus, function(t) t$getText())
+  tempcorpus = lapply(tempcorpus, tolower)
+  tempcorpus<-Corpus(VectorSource(tempcorpus))
+  tempcorpus<-tm_map(tempcorpus,
+                    removePunctuation)
+  tempcorpus<-tm_map(tempcorpus,
+                    stripWhitespace)
+  tempcorpus<-tm_map(tempcorpus,
+                    removeNumbers)
+  tempcorpus<-tm_map(tempcorpus,
+                     removeWords, stopwords("english"))
+  tempcorpus<-tm_map(tempcorpus, 
+                    stemDocument)
+  return(tempcorpus)
+}
+```
+
+## Building a document-term matrix
+
+- Need to go from texts $\rightarrow$ numbers.
+
+- If $d =$ documents in a corpus and $w=$ words in a corpus. 
+
+- Create a matrix $\Delta \in \mathbb{N}^{dXw}$.
+
+- Rows are *documents*, columns are *words*
+
+- This is called the **document-term matrix**. 
+
+
+## Building the document-term matrix
+
+```{r}
+inspect(dtm[1:5, 1:5])
+```
+
+## Building the document-term matrix
+
+```{r}
+newcorpus[[2]]$content
+```
+
+## Sparse Document Term Matrices
+
+- **sparse matrix** In numerical analysis a sparse matrix is a matrix in which most of the elements are zero. 
+
+- **dense matrix** is a matrix in which most of the elements are nonzero. 
+- Matrices in text analysis problems tend to be very sparse.
+
+- This implies that they have many parameters that are uninformative.
+
+## Sparsity reduction
+
+- Sparsity can be reduced by removing terms that occur very frequently.
+
+- This tends to have the effect of both reducing overfitting and improving the predictive abilities of the model.
+
+## Sparsity reduction
+
+```{r}
+dtm<-removeSparseTerms(dtm,0.99)
+dtm
+```
+
+- Here we are reducing the sparsity of the document-term matrix so that the sparsity (% of non-zeros) is a maximum of 95%. 
+
+## TF-IDF: Term-Frequency, Inverse Document Frequency
+
+- The document term matrix only contains the counts of each word in each document.
+
+- This is not the most informative measure of how important a word is in a document.
+
+- We can construct a much better measure by weighting the term frequncies by a metric of how *important* a term is.
+
+## TF-IDF: Term-Frequency, Inverse Document Frequency
+
+**Term frequency**- number of times term *t* appears in document *d*
+
+$$TF_{i,j} = \frac{\sum_{i=1}^{w_{d}}1(w_{i} = t)}{w_{d}}$$
+**Inverse document frequency** - measures importance of a term in a corpus. It is the log of the number of total documents *N* divided by total documents containing the term *t*
+
+$$IDF_{i,j} = ln\left(\frac{N}{\sum_{j=1}^{N}1(d_{j} = t)}\right)$$
+
+## TF-IDF Matrix
+
+$$TF-IDF_{i,j}=TF_{i,j}~X~IDF_{i,j} $$
+$$TF-IDF \in \mathbb{R}^{dxw}$$
+
+## TF-IDF Matrix
+```{r}
+dtm <- DocumentTermMatrix(newcorpus, control = list(weighting = weightTfIdf))
+dtm = removeSparseTerms(dtm, 0.95)
+inspect(dtm[1:5,4:8])
+```
+
+- We can easily construct this in **R**
+
+## TF-IDF Matrix
+```{r}
+inspect(dtm[1:5,4:8])
+```
+
+- We can easily construct this in **R**
+
+
+## Some fun with words
+
+```{r}
+summary(trumptweets$Retweets)
+
+viraltweets<-ifelse(trumptweets$Retweets > 613, 1,0)
+nonviraltweets<-ifelse(trumptweets$Retweets < 613, 1,0)
+```
+
+- Let's say we were interested in trying to figure out what makes a tweet go viral.
+
+- We explore the difference in word usage between high retweet rate tweets and low retweet rate tweets.
+
+## Plot a word cloud
+
+![Wordcloud for High Retweet Trump Tweets](./figs/high-retweet.png)
+
+## Plot a word cloud
+![Wordcloud for Low Retweet Trump Tweets](./figs/low-retweet.png)
+
+
+## Supervised machine learning with text data
+
+- The purpose of all of these steps was to prepare us to build classifiers using **supervised machine learning** methods.
+
+- Recall that supervised machine learning methods are based upon human classification of data.
+
+- The overall goal of supervised machine learning methods is to minimize both the **variance** and **bias** of a classifier.
+
+- In other words we want to produce a classifier that produces the **best** results according to an objective standard.
+
+## Step back - Assessing the performance of classifiers
+
+- Imagine that we built a classifier to figure out which tweets were likely to "go viral"
+
+- Such a classifier can make two types of errors:
+(1) It can incorrectly classify a tweet as one that will "go viral" when it goes not go viral (false positive)
+
+(2) It can incorrectly classify a tweet as one that will "not go viral" when it does go viral. (false negative)
+
+
+## Confusion matrix 
+
+Ground Truth     Class. Viral Class. Not Viral     
+------------     ------------ -----------------  
+Viral            Correct      False (-)
+Not Viral        False (+)    Correct 
+
+Table:  Confusion Matrix for Trump's Tweets
+
+
+
+- A means of displaying this information is in a "confusion matrix" as the one shown above.
+
+- If you are writing a paper using a classifier, **always** include the confusion matrix.
+
+## Sensitivity, specificity and accuracy
+
+- Class specific performance is a very important aspect of classifiers.
+
+- Ideally, you want to keep both **false negatives** and **false positives** as low as possible.
+
+
+
+## Sensitivity, specificity and accuracy
+
+-  **Accuracy** - % of documents that are correctly classified:
+$$
+\frac{\text{# docs correctly classified}}{\text{# of docs classified}}
+$$
+
+- **Sensitivity** is the % of positives that are correctly identified: 
+$$
+\frac{\text{# of positives identified}}{\text{# of positives}}
+$$
+
+- **Specificity** is the % of negatives that are correctly identified: 
+$$
+\frac{\text{# of negatives identified}}{\text{# of negatives}}
+$$
+
+## Sensitivity, specificity and accuracy
+
+- It is very easy to have very high accuracy rates and high (sensitivity/specificity) but a crappy classifier.
+
+- Lesson from classifying violence in religious texts.
+\begin{itemize}
+    \item[o] 5\% of training data (verses) classified as "violent".
+    \item[o] 95\% of training data (verses) classified as "non-violent"
+    \item[o] Accuracy was 95\%, specificity was 99\%, sensitivity was 1\%, why?
+\end{itemize}
+
+
+## Discriminative and Generative Classifiers (from Ng and Jordan (2002))
+
+- **Generative classifiers**: learn a model of the joint probability $p(x,y)$ using Bayes rule to calculate the posterior $p(y|x)$ and then pick the most likley label $y$. (eg). Naive Bayes, all Bayesian methods in general)
+
+- **Discriminative classifiers**: model the posterior $p(y|x)$ directly. (logistic regression, SVMs etc.)
+
+- Ng and Jordan (2002) find that for most kinds of data generative classifiers almost always perform better than discriminative classifiers, despite the fact that they tend to have higher MSE.
+
+- In my personal experience, the results have been mixed.
+
+## Naive Bayes
+
+$$
+P(C = k|D) = \frac{P(D|C = k)P(C=k)}{P(D)}
+$$
+
+- Given a document D, we want to figure out the probability of the document belonging to a class C.
+
+- We can do this by using Bayes theorem to directly calculate class probabilities given the words in a document
+
+## Bayesian statistics terminology
+
+- Before we discuss the naive Bayes algorithm it's useful to know a little bit about the components of Bayes theorem.
+
+$$P(C = k|D)$$ - is known as the **posterior**
+$$P(D |C = k)$$ - is known as the **likelihood**
+$$P(C = k)$$ - is known as the **prior**
+$$P(D)$$ - is known as the **marginal likelihood** or **evidence**.
+
+
+## For continuous distributions this is simply a probability model
+
+$$
+\pi(C | D) = f_{D|C}(D|C)\pi(C) / \int_{\Theta} f_{D|C}(D|C)\pi(C)
+$$
+
+## For discrete distributions this just comes down to multiplying probabilities
+
+$$
+P(C = k|D) = \frac{P(D|C = k)P(C=k)}{P(D)}
+$$
+
+- $D = \{w_{1},w_{2}, \cdots, w_{k}\}$
+- $C = \{1,0\}$ 
+
+
+## Thus...
+
+$$
+P(C = 1|D) = \frac{P(w_{1} \cap w_{2} \cap \cdots \cap w_{k} | C = 1) P(C = 1)}{P(w_{1} \cap w_{2} \cap \cdots \cap w_{k})}
+$$
+
+## Thus...
+Likelihood:
+$$P(D|C = 1) = \prod_{i=1}^W P(w_{i}|C =1)$$
+Prior:
+ $$P(C = 1)= \frac{\# D \in C_{1}}{\# D \in C_{1},C_{2}}$$ 
+
+Marginal likelihood:
+$$
+P(D) = \prod_{i=1}^W P(w_{i})
+$$
+
+## Assumptions
+
+If we assume that the words are independent conditional on a document class then:
+
+$$
+P(C = 1|D) = \frac{[P(w_{1}|C=1)P(w_{2}|C=1)\cdots P(w_{k}| C = 1)] P(C = 1)}{P(w_{1})P(w_{2})\cdots P(w_{k})}
+$$
+
+## Where
+
+ $$P(w_{i} | C = 1) = \frac{\# w_{i} \in C_{1}}{\# \mathbf{w} \in C_{1}}$$
+ $$P(C = 1)= \frac{\# D \in C_{1}}{\# D \in C_{1},C_{2}}$$
+ $$P(w_{i})= \frac{\# w_{i} \in C_{1},C_{2}}{\# \mathbf{w} \in C_{1},C_{2}}$$
+
+## Classification
+
+$$
+\arg\max_{k} C_{k} = P(C = k)\prod_{i=1}^W P(w_{i}|C =k)
+$$
+- For classification purposes, we can ignore the marginal likelihood and assign classes based on likehood and the prior.
+
+## Classification
+
+- An alternative means of expessing this is if:
+
+$$ P(C = k | D) > \frac{1}{k}$$
+
+- Assign document to class *k*.
+
+## Laplace Smoothing
+
+
+
+- Words with zero probability can seriously damage the performance of the classifier. 
+
+- To correct this problem we implement a *Laplace smoother* to ensure that there are no zero probability words. 
+
+- This amounts to simply adding 1 to each count; eg)
+
+$$P(w_{i} | C = 1) = \frac{(\# w_{i} \in C_{1}) + 1}{(\# \mathbf{w} \in C_{1}) + 1}$$
+
+## Example: Tweet Sentiment
+
+Recent Tweet from @POTUS: "We are going to reduce your taxes big league...I want to start that process so quickly...We've got to start the tax reductions."
+
+- $C = {+,-}$
+- $N = 1000 tweets$ 
+- 500 $+$ tweets, 500 $-$ tweets
+
+
+## Example: Tweet Sentiment
+Cleaned Tweet: "reduc tax big league start proces quick start tax reduc."
+
+- $C = {+,-}$
+- $N = 1000$  tweets
+- 500 $+$ tweets, 500 $-$ tweets
