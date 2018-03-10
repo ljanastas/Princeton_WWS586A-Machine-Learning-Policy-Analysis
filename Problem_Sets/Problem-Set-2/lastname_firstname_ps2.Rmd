@@ -1,0 +1,89 @@
+---
+title: '[WWS 586A]: Problem Set 2'
+author: "Jason Anastasopoulos"
+output:
+  html_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+### [WWS 586a] Problem Set 2
+
+For this exercise, you will use the R package *twitteR* and *jsonlite* to collect data from Twitter and the GovTrack API and clean the text data.
+
+### Guidelines
+
+All problem sets must be submitted as two files:
+
+1. A *R Markdown* file with the following format: "lastname_firstname_ps2.Rmd". Ie. for me this would be: "anastasopoulos_jason_ps2.Rmd"
+
+2. A compiled *R Markdown* file in HTML with the following format: "lastname_firstname_ps2.html" Ie. for me this would be: "anastasopoulos_jason_ps2.html"
+
+Please only fill in the sections labelled "YOUR CODE HERE"
+  
+### Rep. Nancy Pelosi's Tweets
+
+1. Set up OAuth credentials which you can use to access the Twitter database by establishing an account on the [Twitter Developer Page](https://apps.twitter.com)
+	
+2. Use the *twitteR* package to collect the most recent 100 tweets from *@NancyPelosi* along with: (1) how many times the Tweets were retweeted; (2) the number of likes that each Tweet received; (3) the date and time of the Tweet and; (4) the city of the Tweet (if available).
+
+
+```{r}
+# Let's first load the R packages and the data
+library(pacman)
+
+# This loads and installs the packages you need at once
+pacman::p_load(foreign,twitteR,jsonlite)
+
+
+##### YOUR CODE HERE ###################################
+
+
+
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+3. Build a data frame  with this information and write the data frame to a .csv file labeled ``pelosi-YourLastName.csv.''
+
+
+```{r}
+##### YOUR CODE HERE ###################################
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+### Tapping Into APIs Using *jsonlite*
+
+Using the GovTrack API, find bills with the keyword ``cybersecurity'' in them.
+
+1. Build a data frame with the first 20 bills which contains (1) the bill titles; (2) the bill id; (3) the last name of the bill sponsor; (4) the bill sponsor's party.
+
+```{r}
+##### YOUR CODE HERE ###################################
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+2. Build a data frame with this information and write the data frame to a .csv file labeled ``cybersecurity-YourLastName.csv.''
+
+
+```{r}
+##### YOUR CODE HERE ###################################
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
