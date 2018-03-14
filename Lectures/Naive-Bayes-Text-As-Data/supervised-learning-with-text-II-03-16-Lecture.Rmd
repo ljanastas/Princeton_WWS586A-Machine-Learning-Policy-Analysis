@@ -1,0 +1,356 @@
+---
+title: "Supervised Learning with Text II: Naive Bayes and Support Vector Machines"
+author: "L. Jason Anastasopoulos"
+date: "3/14/2018"
+output: ioslides_presentation
+---
+```{r, echo=FALSE, cache=FALSE, include=FALSE}
+library(pacman)
+
+# This loads and installs the packages you need at once
+pacman::p_load(tm,SnowballC,foreign,plyr,twitteR,slam,foreign,wordcloud,LiblineaR,e1071, quanteda)
+
+text_cleaner<-function(corpus, rawtext){
+  tempcorpus = lapply(corpus,toString)
+    for(i in 1:length(tempcorpus)){
+  tempcorpus[[i]]<-iconv(tempcorpus[[i]], "ASCII", "UTF-8", sub="")
+    }
+if(rawtext == TRUE){
+  tempcorpus = lapply(tempcorpus, function(t) t$getText())
+}
+  tempcorpus = lapply(tempcorpus, tolower)
+  tempcorpus<-Corpus(VectorSource(tempcorpus))
+  tempcorpus<-tm_map(tempcorpus,
+                    removePunctuation)
+  tempcorpus<-tm_map(tempcorpus,
+                    removeNumbers)
+  tempcorpus<-tm_map(tempcorpus,
+                     removeWords, stopwords("english"))
+  tempcorpus<-tm_map(tempcorpus, 
+                    stemDocument)
+    tempcorpus<-tm_map(tempcorpus,
+                    stripWhitespace)
+  return(tempcorpus)
+}
+
+trumptweets <- read.csv("https://www.ocf.berkeley.edu/~janastas/trump-tweet-data.csv")
+
+trumptweets<-trumptweets[1:3917,]
+
+tweets<-trumptweets$Text
+
+newcorpus<-text_cleaner(tweets, rawtext = FALSE)
+
+# Create a document term matrix
+dtm <- DocumentTermMatrix(newcorpus)
+dtm = removeSparseTerms(dtm, 0.85) # Reduce sparsity
+
+dtm_mat<-as.matrix(dtm)
+
+viraltweets<-ifelse(trumptweets$Retweets > 9366, 1,0)
+nonviraltweets<-ifelse(trumptweets$Retweets < 3030, 1,0)
+
+# Naive Bayes with text
+# Split sample into training and test (75/25)
+train=sample(1:dim(trumptweets)[1],
+             dim(trumptweets)[1]*0.75)
+dtm_mat<-as.matrix(dtm)
+trainX = dtm_mat[train,]
+testX = dtm_mat[-train,]
+trainY = viraltweets[train]
+testY = viraltweets[-train]
+
+# Sparse logistic regression with L2 loss ("type = 7")
+m=LiblineaR(data=trainX,target=trainY,
+            type=7,bias=TRUE,verbose=FALSE)
+
+
+# Predict using the test set
+
+p=predict(m,testX)
+
+
+# create confusion matrix
+confusion=table(p$predictions,
+          testY)
+confusion
+
+# calculate accuracy, sensitivity,specificity
+
+accuracy<-(1438+39)/sum(confusion)
+accuracy
+specificity<-39/(439+39)
+specificity
+sensitivity<-1438/(1438+43)
+sensitivity
+
+
+# Naive bayes classification
+
+# Split sample into training and test
+
+# Create a document term matrix
+dtm <- DocumentTermMatrix(newcorpus)
+
+
+train=sample(1:dim(trumptweets)[1],
+             dim(trumptweets)[1]*0.5)
+dtm_mat<-as.matrix(dtm)
+trainX = dtm_mat[train,]
+testX = dtm_mat[-train,]
+trainY = viraltweets[train]
+testY = viraltweets[-train]
+
+
+```
+
+
+## Naive Bayes
+
+$$
+P(C = k|D) = \frac{P(D|C = k)P(C=k)}{P(D)}
+$$
+
+- Given a document D, we want to figure out the probability of the document belonging to a class C.
+
+- We can do this by using Bayes theorem to directly calculate class probabilities given the words in a document
+
+## Bayesian statistics terminology
+
+- Before we discuss the naive Bayes algorithm it's useful to know a little bit about the components of Bayes theorem.
+
+$$P(C = k|D)$$ - is known as the **posterior**
+$$P(D |C = k)$$ - is known as the **likelihood**
+$$P(C = k)$$ - is known as the **prior**
+$$P(D)$$ - is known as the **marginal likelihood** or **evidence**.
+
+
+## For continuous distributions this is simply a probability model
+
+$$
+\pi(C | D) = f_{D|C}(D|C)\pi(C) / \int_{\Theta} f_{D|C}(D|C)\pi(C)
+$$
+
+## For discrete distributions this just comes down to multiplying probabilities
+
+$$
+P(C = k|D) = \frac{P(D|C = k)P(C=k)}{P(D)}
+$$
+
+- $D = \{w_{1},w_{2}, \cdots, w_{k}\}$
+- $C = \{1,0\}$ 
+
+
+## Thus...
+
+$$
+P(C = 1|D) = \frac{P(w_{1} \cap w_{2} \cap \cdots \cap w_{k} | C = 1) P(C = 1)}{P(w_{1} \cap w_{2} \cap \cdots \cap w_{k})}
+$$
+
+## Thus...
+Likelihood:
+$$P(D|C = 1) = \prod_{i=1}^W P(w_{i}|C =1)$$
+Prior:
+ $$P(C = 1)= \frac{\# D \in C_{1}}{\# D \in C_{1},C_{2}}$$ 
+
+Marginal likelihood:
+$$
+P(D) = \prod_{i=1}^W P(w_{i})
+$$
+
+## Assumptions
+
+If we assume that the words are independent conditional on a document class then:
+
+$$
+P(C = 1|D) = \frac{[P(w_{1}|C=1)P(w_{2}|C=1)\cdots P(w_{k}| C = 1)] P(C = 1)}{P(w_{1})P(w_{2})\cdots P(w_{k})}
+$$
+
+## Where
+
+ $$P(w_{i} | C = 1) = \frac{\# w_{i} \in C_{1}}{\# \mathbf{w} \in C_{1}}$$
+ $$P(C = 1)= \frac{\# D \in C_{1}}{\# D \in C_{1},C_{2}}$$
+ $$P(w_{i})= \frac{\# w_{i} \in C_{1},C_{2}}{\# \mathbf{w} \in C_{1},C_{2}}$$
+
+## Classification
+
+$$
+\arg\max_{k} C_{k} = P(C = k)\prod_{i=1}^W P(w_{i}|C =k)
+$$
+- For classification purposes, we can ignore the marginal likelihood and assign classes based on likehood and the prior.
+
+## Classification
+
+- An alternative means of expessing this is if:
+
+$$ P(C = k | D) > \frac{1}{k}$$
+
+- Assign document to class *k*.
+
+## Laplace Smoothing
+
+- Words with zero probability can seriously damage the performance of the classifier. 
+
+- To correct this problem we implement a *Laplace smoother* to ensure that there are no zero probability words. 
+
+- This amounts to simply adding 1 to each count; eg)
+
+$$P(w_{i} | C = 1) = \frac{(\# w_{i} \in C_{1}) + 1}{(\# \mathbf{w} \in C_{1}) + 1}$$
+
+
+## Recall from last time
+
+```{r}
+summary(trumptweets$Retweets)
+
+viraltweets<-ifelse(trumptweets$Retweets > 9366, 1,0)
+nonviraltweets<-ifelse(trumptweets$Retweets < 3030, 1,0)
+```
+
+- Let's say we were interested in trying to figure out what makes a tweet go viral.
+
+- We explore the difference in word usage between high retweet rate tweets and low retweet rate tweets.
+
+## Pre-processing pipeline
+```{r}
+text_cleaner<-function(corpus, rawtext){
+  tempcorpus = lapply(corpus,toString)
+  for(i in 1:length(tempcorpus)){
+    tempcorpus[[i]]<-iconv(tempcorpus[[i]], "ASCII", "UTF-8", sub="")
+  }
+  if(rawtext == TRUE){
+    tempcorpus = lapply(tempcorpus, function(t) t$getText())
+  }
+  tempcorpus = lapply(tempcorpus, tolower)
+  tempcorpus<-Corpus(VectorSource(tempcorpus))
+  tempcorpus<-tm_map(tempcorpus,
+                     removePunctuation)
+  tempcorpus<-tm_map(tempcorpus,
+                     removeNumbers)
+  tempcorpus<-tm_map(tempcorpus,
+                     removeWords, stopwords("english"))
+  tempcorpus<-tm_map(tempcorpus, 
+                     stemDocument)
+  tempcorpus<-tm_map(tempcorpus,
+                     stripWhitespace)
+  return(tempcorpus)
+}
+
+```
+
+
+
+## Support vector machines
+
+- One of the oldest machine learning methods.
+
+- Introduced around 1992 by Vapnik.
+
+- Theoretically well motivated - the product of statistical learning theory since the 60s.
+
+- Good performance in many domains (image recognition, text data etc.)
+
+
+## Support vector machine basics
+
+- Support vector machines are in many ways similar to regression.
+
+- But instead of fitting a line, support vector machines fit a **maximally separating hyperplane** between a set of points.
+
+## Support vector machines
+
+![SVM Maximally separating hyperplane](https://randomforests.files.wordpress.com/2014/01/n150_svm.png)
+
+- Support vector machines have nice properties
+
+- Convex and can be non-linear w/ different kernels.
+
+## How do SVMs work?
+
+$$ \theta^{T}x - \alpha = 0 $$
+
+- Hyperplane can be written as the above.
+
+- SVMs involve estimating weights $\theta$ that define a hyperplane which separates two classes.
+
+- But there are lots of different hyperplanes you can estimate. 
+
+- Which one to choose?
+
+## SVM hyperplane estimation
+$$ 
+\begin{aligned}
+\theta^{T}x - \alpha & = 0 \\
+\theta^{T}x - \alpha & \geq 1 &~\text{if}~y_{i} =1  \\
+\theta^{T}x - \alpha & \leq -1 &~\text{if}~y_{i}=-1  \\
+\end{aligned}
+$$
+
+- SVMs estimate hyperplanes which leave the **maximum margin** between classes.
+
+## SVM hyperplane estimation
+Margin is:
+$$ 
+\frac{2}{||\theta||}
+$$
+
+The maximum margin is when $||\theta||$ is at a minimum.
+
+
+## SVM hyperplane estimation
+Minimize $$||\theta|| $$ 
+
+$$y_{i}(\theta^{T}x - \alpha) \geq 1 $$
+
+- Hyperplane estimation is a constrained optimization problem.
+
+- Estimated using Lagrangians.
+
+## SVM Kernel Trick
+
+- Although SVMs are technially linear models, you can estimate nonlinear SVMs with something known as the **kernel trick**
+
+- This can be done by essentially changing the ways that the weights are estimated.
+
+- Changing the kernel can drastically change performance of the SVM.
+
+## Support vector machines in R
+
+```{r}
+fword_train <- 
+  DocumentTermMatrix(newcorpus[train],
+  control=list(dictionary = ten_words))
+
+fword_test <- 
+  DocumentTermMatrix(newcorpus[-train],
+  control=list(dictionary = ten_words))
+```
+
+## Support Vector Machines in R
+- SVM with the default kernel
+
+```{r}
+model <- svm(x=as.matrix(fword_train),
+             y=factor(trainY))
+ 
+predictedY <- predict(model,as.matrix(fword_test))
+ 
+confusion = table(testY, predictedY)
+confusion
+```
+
+
+## Support Vector Machines in R
+- SVM with the sigmoid kernel
+
+```{r}
+model <- svm(x=as.matrix(fword_train),
+             y=factor(trainY), kernel="sigmoid")
+ 
+predictedY <- predict(model,as.matrix(fword_test))
+ 
+confusion = table(testY, predictedY)
+confusion
+```
+
+
