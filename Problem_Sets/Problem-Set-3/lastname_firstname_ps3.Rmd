@@ -1,0 +1,132 @@
+---
+title: '[WWS 586A]: Problem Set 3'
+author: "Jason Anastasopoulos"
+output:
+  html_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+### [WWS 586a] Problem Set 3
+
+For these exercises we will be using the movie reviews collected by Pang and Lee. The data can be directly loaded into R from here:
+[http://www.ocf.berkeley.edu/~janastas/data/movie-pang02.csv](Movie Reviews). These reviews are classified into positive and negative ratings. 
+
+### Guidelines
+
+All problem sets must be submitted as two files:
+
+1. A *R Markdown* file with the following format: "lastname_firstname_ps3.Rmd". Ie. for me this would be: "anastasopoulos_jason_ps3.Rmd"
+
+2. A compiled *R Markdown* file in HTML with the following format: "lastname_firstname_ps2.html" Ie. for me this would be: "anastasopoulos_jason_ps3.html"
+
+Please only fill in the sections labelled "YOUR CODE HERE"
+  
+### 1. Cleaning text 
+
+Write a function that cleans each movie review by doing ONLY the following:
+
+- Tokenizing words.
+- Removing punctuation.
+- Putting words in lower case.
+- Removing stop words.
+
+```{r}
+# Let's first load the R packages and the data
+library(pacman)
+
+# This loads and installs the packages you need at once
+pacman::p_load(foreign,twitteR,jsonlite)
+
+##### YOUR CODE HERE ###################################
+text_cleaner<-function(corpus){
+ 
+   
+}
+##### YOUR CODE HERE ###################################
+```
+
+
+### 2. Document-Term Matrices
+Create two document-term matricies using your pre-processed text data. 
+
+Create one document-term matrix which uses only the text frequencies and call that document term matrix "reviewsDTM_F."
+
+Create another document-term matrix which had TF-IDF weights and call that document term matrix "reviewsDT_TFIDF"
+
+```{r}
+##### YOUR CODE HERE ###################################
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+### 3. Train a naive-bayes classifier
+
+Using the document-term matrix "reviewsDTM_F", train a naive Bayes classifier with a 80\%/20\% training/testing split. 
+
+Using 10--fold cross validation, calculate and report:
+
+- Accuracy.
+- Specificity.
+- Sensitivity.
+- F1 Score
+- Confusion matrix.
+
+Save the trained classifier as the object ``trainedNBclassifier.''
+
+```{r}
+##### YOUR CODE HERE ###################################
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+### 4. Train a naive-bayes classifier (again)
+
+Repeat question 4 using the "reviewsDT_TFIDF" document-term matrix.
+
+```{r}
+##### YOUR CODE HERE ###################################
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+Do your performance statistics improve? 
+
+Using the *F1* statistic as your measure, it is better to use only text frequency weighting or TF-IDF weighting?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
