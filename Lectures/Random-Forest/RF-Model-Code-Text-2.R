@@ -1,7 +1,7 @@
 library(pacman)
 
 # This loads and installs the packages you need at once
-pacman::p_load(tm,SnowballC,foreign,plyr,twitteR,slam,foreign,wordcloud,LiblineaR,e1071,caret)
+pacman::p_load(tm,SnowballC,foreign,plyr,twitteR,slam,foreign,wordcloud,LiblineaR,e1071,caret,rpart)
 
 text_cleaner<-function(corpus, rawtext){
   tempcorpus = lapply(corpus,toString)
