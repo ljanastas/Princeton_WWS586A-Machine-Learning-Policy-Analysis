@@ -1,0 +1,216 @@
+---
+title: '[WWS 586A]: Problem Set 3'
+author: "Jason Anastasopoulos / Tomer Kremerman"
+output:
+  html_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+### [WWS 586a] Problem Set 3
+
+For these exercises we will be using the movie reviews collected by Pang and Lee. The data can be directly loaded into R from here:
+[http://www.ocf.berkeley.edu/~janastas/data/movie-pang02.csv](Movie Reviews). These reviews are classified into positive and negative ratings. 
+
+### Due Date and Time
+
+Due on Monday, April 2nd at 11:59PM
+
+### Guidelines
+
+All problem sets must be submitted as two files:
+
+1. A *R Markdown* file with the following format: "lastname_firstname_ps3.Rmd". Ie. for me this would be: "anastasopoulos_jason_ps3.Rmd"
+
+2. A compiled *R Markdown* file in HTML with the following format: "lastname_firstname_ps2.html" Ie. for me this would be: "anastasopoulos_jason_ps3.html"
+
+Please only fill in the sections labelled "YOUR CODE HERE"
+  
+### 1. Cleaning text 
+
+Write a function that cleans each movie review by doing ONLY the following:
+
+- Tokenizing words.
+- Removing punctuation.
+- Putting words in lower case.
+- Removing stop words.
+
+```{r}
+# Let's first load the R packages and the data
+library(pacman)
+
+# This loads and installs the packages you need at once
+pacman::p_load(tm,SnowballC,foreign,plyr,twitteR,slam,foreign,wordcloud,LiblineaR,e1071,caret)
+
+##### YOUR CODE HERE ###################################
+#Load, view the data
+ movies<-read.csv("http://www.ocf.berkeley.edu/~janastas/data/movie-pang02.csv")
+ head(movies)
+
+#Define function
+ require(tm)
+ text_cleaner<-function(corpus){
+    corpus<-Corpus(VectorSource(corpus))
+    corpus<-tm_map(corpus, removePunctuation)
+    corpus<-tm_map(corpus, tolower)
+    corpus<-tm_map(corpus, removeWords, stopwords("english"))
+    return(corpus)
+ }
+ 
+#Test
+ corpus<-text_cleaner(movies$text)
+ 
+View(corpus)
+##### YOUR CODE HERE ###################################
+```
+
+
+### 2. Document-Term Matrices
+Create two document-term matricies using your pre-processed text data. 
+
+Create one document-term matrix which uses only the text frequencies and call that document term matrix "reviewsDTM_F."
+
+Create another document-term matrix which had TF-IDF weights and call that document term matrix "reviewsDT_TFIDF"
+
+```{r}
+##### YOUR CODE HERE ###################################
+#Create unweighted DTM:
+ reviewsDTM_F<-DocumentTermMatrix(corpus)
+ reviewsDTM_F<-removeSparseTerms(reviewsDTM_F, 0.99)
+ reviewsDTM_F
+ reviewsDTM_F_mat<-as.matrix(reviewsDTM_F)
+
+#Create weighted DTM:
+ reviewsDT_TFIDF<-DocumentTermMatrix(corpus, control = list(weighting = weightTfIdf))
+ reviewsDT_TFIDF<-removeSparseTerms(reviewsDT_TFIDF, 0.99)
+ reviewsDT_TFIDF
+ reviewsDT_TFIDF_mat<-as.matrix(reviewsDT_TFIDF)
+
+##### YOUR CODE HERE ###################################
+```
+
+### 3. Train a naive-bayes classifier
+
+Using the document-term matrix "reviewsDTM_F", train a naive Bayes classifier with a 80\%/20\% training/testing split. 
+
+Using 10--fold cross validation, calculate and report:
+
+- Accuracy.
+- Specificity.
+- Sensitivity.
+- F1 Score
+- Confusion matrix.
+
+Save the trained classifier as the object ``trainedNBclassifier.''
+
+```{r}
+##### YOUR CODE HERE ###################################
+#Create Y vector
+ positiveRev<-ifelse(movies$class=="Pos", 1, 0)
+
+#Split sample
+ train<-sample(1:dim(movies)[1], dim(movies)[1]*0.8)
+ trainX<-reviewsDTM_F_mat[train,]
+ testX<-reviewsDTM_F_mat[-train,]
+ trainY<-positiveRev[train]
+ testY<-positiveRev[-train]
+
+#Create classifier using 10fold cross validation - greyed out to cut down computing time
+ #trainedNBclassifier <- train(trainX,factor(trainY), trControl = trainControl(method = "cv", number = 10))
+ 
+#Create classifier using regular NB
+ trainedNBclassnoCV<-naiveBayes(x=trainX,y=factor(trainY))
+ 
+#Predict movie reviews
+ sentPred<-predict(trainedNBclassnoCV, testX)
+
+#Create Confusion Matrix:
+ confusion<-table(sentPred, testY) 
+ confusion
+ 
+#Report Accuracy:
+ accuracy<-c(confusion[1,1]+confusion[2,2])/sum(confusion)
+ accuracy
+
+#Report Specifity:
+ specificity<-confusion[1,1]/sum(confusion[1,])
+ specificity
+
+#Report Sensitivity:
+ sensitivity<-confusion[2,2]/sum(confusion[2,])
+ sensitivity
+ 
+#Report F1 score:
+ F1_score<-2*(accuracy*sensitivity)/(accuracy+sensitivity)
+ F1_score
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+### 4. Train a naive-bayes classifier (again)
+
+Repeat question 4 using the "reviewsDT_TFIDF" document-term matrix.
+
+```{r}
+##### YOUR CODE HERE ###################################
+ trainX2<-reviewsDT_TFIDF_mat[train,]
+ testX2<-reviewsDT_TFIDF_mat[-train,]
+
+#Create classifier using 10fold cross validation - greyed out to cut down computing time
+ #trainedNBclassifier2 <- train(trainX2,factor(trainY), trControl = trainControl(method = "cv", number = 10))
+ 
+#Create classifier using regular NB
+ trainedNBclassnoCV2<-naiveBayes(x=trainX2,y=factor(trainY))
+ 
+#Predict movie reviews
+ sentPred2<-predict(trainedNBclassnoCV2, testX2)
+
+#Create Confusion Matrix:
+ confusion2<-table(sentPred2, testY) 
+ confusion2
+ 
+#Report Accuracy:
+ accuracy2<-c(confusion2[1,1]+confusion2[2,2])/sum(confusion2)
+ accuracy2
+
+#Report Specifity:
+ specificity2<-confusion2[1,1]/sum(confusion2[1,])
+ specificity2
+
+#Report Sensitivity:
+ sensitivity2<-confusion2[2,2]/sum(confusion2[2,])
+ sensitivity2
+ 
+#Report F1 score:
+ F1_score2<-2*(accuracy2*sensitivity2)/(accuracy2+sensitivity2)
+ F1_score2
+
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+Do your performance statistics improve? 
+
+Using the *F1* statistic as your measure, it is better to use only text frequency weighting or TF-IDF weighting?
+
+Using TF-IDF, the F1 score was *lower* than for the unweighted DTM (0.77 compared to 0.68). 
+It should be noted however that I implemented a regular NB algorithm rather than a cross-validating one, since computation time was running rampant; it is possible that a cross-validated model would yield different results.
+
+
+
+
+
+
+
+
+
+
+
+
+
