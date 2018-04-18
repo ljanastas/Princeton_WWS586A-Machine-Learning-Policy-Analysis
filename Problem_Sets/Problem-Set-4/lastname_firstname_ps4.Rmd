@@ -22,7 +22,7 @@ All problem sets must be submitted as two files:
 
 1. A *R Markdown* file with the following format: "lastname_firstname_ps4.Rmd". Ie. for me this would be: "anastasopoulos_jason_ps4.Rmd"
 
-2. A compiled *R Markdown* file in HTML with the following format: "lastname_firstname_ps2.html" Ie. for me this would be: "anastasopoulos_jason_ps3.html"
+2. A compiled *R Markdown* file in HTML with the following format: "lastname_firstname_ps4.html" Ie. for me this would be: "anastasopoulos_jason_ps4.html"
 
 Please only fill in the sections labelled "YOUR CODE HERE"
   
