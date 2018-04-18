@@ -1,0 +1,203 @@
+---
+title: '[WWS 586A]: Problem Set 4'
+author: "Jason Anastasopoulos"
+output:
+  html_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+### [WWS 586a] Problem Set 4
+
+For these exercises we will be using the Global Terrorism Database (GTD) which can be found on Kaggle:
+[https://www.kaggle.com/START-UMD/gtd/data](Global Terrorism Database). The GTD contains a great deal of information about terrorist events and contains roughly 170,000 such events. 
+
+### Due Date and Time
+
+Due on Wednesday, April 25th at 11:59PM
+
+### Guidelines
+
+All problem sets must be submitted as two files:
+
+1. A *R Markdown* file with the following format: "lastname_firstname_ps4.Rmd". Ie. for me this would be: "anastasopoulos_jason_ps4.Rmd"
+
+2. A compiled *R Markdown* file in HTML with the following format: "lastname_firstname_ps2.html" Ie. for me this would be: "anastasopoulos_jason_ps3.html"
+
+Please only fill in the sections labelled "YOUR CODE HERE"
+  
+### Learning about assassinations and bombings through random forests
+
+For this problem set, we will be taking the training wheels off and you will have to use your discretion to train a model using random forests.
+
+The goal of this portion of the assignment is to build a machine learning classifier that will enable you to predict assasination events as a function of the features in the data. 
+
+Assasinations are labeled as "1" in the variable "attacktype1" within the GTD and bombings are labeled as "3".
+Using whichever features you would like and whichever package you wouldu like, train two random forests classifiers to predict assassinations and bombings using an 80/20 training test split. 
+
+Report the: accuracy, specificity, sensitivity and F1 statistics of the classifiers that you trained for each model.
+
+```{r}
+### Code for assasinations classifier
+##### YOUR CODE HERE ###################################
+
+
+
+
+
+
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+
+```{r}
+### Code for bombings classifier
+##### YOUR CODE HERE ###################################
+
+
+
+
+
+
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+### 2. Which features predict assasinations and bombings best?
+
+One of the best things about the random forests algorithm is that it allows us to understand which features contributed most to prediction success. 
+
+Create a plot of the top 10 most important features for each classifier using the % increase in MSE estimate to determine feature importance. 
+
+```{r}
+### Plot for assasinations classifier
+##### YOUR CODE HERE ###################################
+
+
+
+
+
+
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+```{r}
+### Plot for bombings classifier
+##### YOUR CODE HERE ###################################
+
+
+
+
+
+
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+### 3. Lasso classification of assasinations and bombings
+
+Using logistic regression with  $L_1$ regularization (logistic regression lasso), train a model with the same features that you used for your decision tree classifiers above using an 80/20 train/test split. 
+
+Report the accuracy, specificity, sensistivity and F1 statistics for the trained logistic regression classifier for assasinations and bombings
+
+```{r}
+### Code for assasinations classifier
+##### YOUR CODE HERE ###################################
+
+
+
+
+
+
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+
+```{r}
+### Code for bombings classifier
+##### YOUR CODE HERE ###################################
+
+
+
+
+
+
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+
+
+### 4. Features predicting bombings and assisnations best using the lasso.  
+
+Create a plot of the top 10 most important features for each classifier using the coefficient estimates from the lasso model. As long as you standardized your data when you estimated the lasso model, the coefficient estimates will be on the same scale.
+
+```{r}
+### Plot for assasinations classifier
+##### YOUR CODE HERE ###################################
+
+
+
+
+
+
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+```{r}
+### Plot for bombings classifier
+##### YOUR CODE HERE ###################################
+
+
+
+
+
+
+
+
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+
+
+
+
+
+
+
+
+
