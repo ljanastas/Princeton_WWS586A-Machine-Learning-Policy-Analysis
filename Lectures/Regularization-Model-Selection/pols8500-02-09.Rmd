@@ -1,0 +1,455 @@
+---
+title: '[POLS 8500] Regularization, Dimensionality Reduction, Classification Problems'
+author: "L. Jason Anastasopoulos [ljanastas@uga.edu](jlanastas@uga.edu)"
+date: "February 2, 2017"
+output: beamer_presentation
+---
+## Methods to decrease the number of features without decreasing model accuracy
+
+>- **Subset Selection**- find  $p \subset P$ that best fit *Y*.
+
+>- **Shrinkage/Regularization** - Fit model to all *p* predictors, shrink values of some $\theta \rightarrow 0$.
+
+>- **Dimensionality Reduction** - Project $p$ onto $\mathcal{M}$ dimensional subspace s.t. $\mathcal{M}< p$. Use $\mathcal{M}$ as predictors.
+
+## Methods of subset selection
+
+>- Best subset.
+
+>- Forward stepwise.
+
+>- Backward stepwise.
+
+## Methods of subset selection
+
+- All are essentially a means of reducing the number of variables that you include in a model.
+
+- An alternative to this is the inclusion of all of the predictors that you'd like, but have a model that  *constrains* or *regularizes* the coefficient values.
+
+## Regularization and shrinkage
+
+- *Regularization* methods effectively downweight coefficients toward zero.
+
+- This has the effect of improving fit and reducing the variance of estimates.
+
+- Two techniques we will be discussing are *ridge regression* and the *lasso*.
+
+## Ridge regression
+
+Recall that for linear regression we seek to estimate parameter values that minimize the cost function:
+
+$$ J(\theta) = \sum_{i=1}^{n}\left(y_{i} - \beta_{0} - \sum_{j=1}^{p} \theta_{j}x_{ij}\right)^{2}
+$$
+
+
+## Ridge regression
+
+>- In ridge regression we seek to do the same thing except now we add $\lambda \sum_{j=1}^{p}\theta_{j}$
+
+>- So that now we're minimizing
+
+$$ \sum_{i=1}^{n}\left(y_{i} - \beta_{0} - \sum_{j=1}^{p} \theta_{j}x_{ij}\right)^{2} + \lambda \sum_{j=1}^{p}\theta_{j}^{2}
+$$
+
+
+## Ridge regression
+
+>- $\lambda > 0$ and is referred to as a *tuning parameter* and is determined independently.
+
+>- $\lambda \sum_{j=1}^{p}\theta_{j}$ is called the *shrinkage penalty*
+
+$$ \sum_{i=1}^{n}\left(y_{i} - \beta_{0} - \sum_{j=1}^{p} \theta_{j}x_{ij}\right)^{2} + \lambda \sum_{j=1}^{p}\theta_{j}^{2}
+$$
+
+## Shrinkage penalty
+
+$$\lambda \sum_{j=1}^{p}\theta_{j} $$
+
+- When $\theta_{1},\cdots,\theta_{p}$ are close to zero the shrinkage penalty shrinks them toward zero.
+
+- When $\lambda = 0$ we estimate OLS coefficients.
+
+- As $\lambda \rightarrow \infty$ all coefficients shrink to zero.
+
+## Shrinkage penalty
+
+$$\lambda \sum_{j=1}^{p}\theta_{j} $$
+
+- Shirinkage does not affect the intercept $\theta_{0}$, only the coefficients with variables attached to them.
+
+- It essentially downweights the impact that some variables have.
+
+## Shrinkage penalty
+
+![optional caption text](./figs/ridge-regression.pdf)
+
+- Shrinkage does not affect the intercept $\theta_{0}$, only the coefficients with variables attached to them.
+
+- It essentially downweights the impact that some variables have.
+
+
+## Ridge regression - issues
+
+$$ x_{i}  = \frac{x_{i}}{s} $$ 
+
+- Ridge regression is sensitive to the scaling of the predictiors.
+
+- May get different outcomes if your predictor is **X** vs **1000X**.
+
+- Predictors should be *standardized* to avoid these issues.
+
+## Ridge regression and the bias-variance tradeoff
+
+![Squared bias (black), variance (green), and test MSE (purple) for ridge regression as a function of $\lambda$](./figs/ridge-bias-variance.pdf)
+
+- Ridge regression can lead to significant reductions in test mean squared error over OLS with only small increases in bias.
+
+- Ridge regression also less computationally intensive than some subset selection methods.
+
+## The Lasso
+
+- Ridge regression will shrink coefficients toward zero.
+
+- Will not set coefficients to zero unless $\lambda = \infty$.
+
+- This can be a problem for model interpretation when $p$ is large.
+
+- All predictors will be retained.
+
+## The Lasso
+
+$$ \sum_{i=1}^{n}\left(y_{i} - \beta_{0} - \sum_{j=1}^{p} \theta_{j}x_{ij}\right)^{2} + \lambda \sum_{j=1}^{p}|\theta_{j}|
+$$
+
+- Lasso solves this problem with a very simple tweak.
+
+- The $L_{2}$ penalty of the ridge regression is replaced with the $L_{1}$ penalty of the Lasso.
+
+- For $\lambda$ sufficiently large some $\theta_{j} = 0$.
+
+- Produces *sparse* models.
+
+## Why does the Lasso produce estimates that = 0?
+
+- It is not entirely clear why the Lasso would produce coefficient estimates that equal zero while ridge regression does not.
+
+- To understand why this is the case it is necessary to frame Lasso and Ridge regression as *contrained optimization* problems (remember Langrange multipliers!)
+
+## Constrained optimization
+Maximize $f(x,y)$
+
+Subject to $g(x,y) = c$
+$$
+\begin{aligned}
+   \mathcal{L}(x,y,\lambda) = f(x,y) - \lambda(g(x,y) - c)
+\end{aligned}
+$$
+- By calculating the gradient of the Lagranginan $\nabla \mathcal{L}(x,y,\lambda) = 0$, solving for $\lambda$, $x$ and $y$ in the system of equations and assessing $f(x,y)$ at the critical points will give you the minima and maxima subject to the constraints.
+
+## Constrained optimization: example
+
+Maximize $f(x,y) = x+y$
+
+Subject to $g(x,y) = x^{2}+y^{2} = 1$
+
+
+## Lasso and ridge regression are constrained optimization problems
+
+$$
+\begin{aligned}
+   \text{Lasso: } & \arg\min_{\theta}\sum_{i=1}^{n}\left(y_{i} - \beta_{0} - \sum_{j=1}^{p} \theta_{j}x_{ij}\right)^{2} & \text{subject to:} \sum_{j=1}^{p}|\theta_{j}| \leq s \\
+   \\
+      \text{Ridge: } & \arg\min_{\theta}\sum_{i=1}^{n}\left(y_{i} - \beta_{0} - \sum_{j=1}^{p} \theta_{j}x_{ij}\right)^{2} & \text{subject to:} \sum_{j=1}^{p}(\theta_{j})^{2} \leq s
+\end{aligned}
+$$
+
+
+
+
+## Lasso and ridge regression are constrained optimization problems
+\begin{center}
+\includegraphics[width = 0.6\textwidth]{./figs/lasso-and-ridge-zero.pdf}
+\end{center}
+
+Two feature model. Contour plot of error and constraint functions for lasso (left) and ridge regression (right). Notice that the error functions and constraint for the lasso meet at $\beta_{1} = 0$.
+
+
+
+## Comparing Lasso and Ridge regression 
+
+$$ Y = \theta_{0} + \sum_{i} \theta_{i}x_{i} $$
+
+- Lasso is better for interpretability, but the predictive model may not be better if many of the predictors truly do not equal zero.
+
+- Take the model above. If, for $i = 1,\cdots,20$ for example and $\theta_{i}>0$, then ridge regression will outperform the Lasso.
+
+## Bayesian interpretations
+
+$$
+p(\theta | X,Y) \propto f(Y | X, \theta)p(\theta)
+$$
+- Ridge regression and the Lasso can also be thought of as Bayesian models.
+
+- If we assume $\theta\sim N(\mu = 0, \sigma^{2} = \lambda)$ and $p(\theta) = \prod_{p} \Phi(\mu = 0, \sigma^{2} = \lambda)$, the posterior mode for $\theta$ is the ridge regression solution.
+
+
+- If we assume $\theta\sim \Lambda(\mu = 0, b = \lambda)$ and $p(\theta) = \prod_{p} \Lambda(\mu = 0, b = \lambda)$, the posterior mode for $\theta$ is the lasso solution.
+
+
+## Selecting $\lambda$
+
+- Choose a range of values for $\lambda \in [a,b]$
+
+- For each $\lambda_{i} \in [a,b]$ calculate the cross-validated error $CV_{i}$.
+
+- Select $\lambda_{i}$ such that $\min CV_{i}$, the cross-validated error is minimized.
+
+
+## Selecting $\lambda$
+
+\begin{center}
+\includegraphics[width = 0.6\textwidth]{./allfigs/Chapter6/6.12.pdf}
+\end{center}
+
+Left: Cross validated errors from applying ridge regression to the **Credit** data set with several values of $\lambda$. Right: standardized coefficient values as a function of $\lambda$.
+
+## Dimensionality Reduction Methods
+
+- All of the models discussed used the original predictors in some form.
+
+- Dimensionality reduction methods transform the predictors into variable clusters and then use these transformed variables to fit a model.
+
+
+## Dimensionality Reduction Methods
+Consider a linear combination  $Z_{1},\cdots,Z_{M}$ of the features $X_{1},\cdots,X_{1}$  such that $M < p$ where:
+$$
+Z_{m} = \sum_{j = 1}^{p}\phi_{jm}X_{j} 
+$$
+For some  constants $\phi_{1},\cdots,\phi_{M}; m\in[1,M]$. We can then fit the linear regression model:
+
+$$
+y_{i} = \Theta_{0} + \sum_{m=1}^{M}\Theta_{m}z_{im}
+$$
+
+## Dimensionality Reduction Methods
+The model
+$$
+y_{i} = \Theta_{0} + \sum_{m=1}^{M}\Theta_{m}z_{im}
+$$
+now has $M+1<p+1$ predictors and, if chosen well, can result in a better fit through estimating fewer parameters than the original regression model. 
+
+
+## Dimensionality Reduction Methods
+To be clear take a simple linear regression model with three features:
+
+$$
+Y = \theta_{0} + \theta_{1}X_{1} + \theta_{2}X_{2} + \theta_{3}X_{3} + \epsilon
+$$
+Define $z_{1} = \phi_{1}X_{1} +  \phi_{3}X_{3}$ and $z_{2} = \phi_{2}X_{2}$. We can now estimate the reduced model:
+
+$$
+\begin{aligned}
+Y & = \Theta_{0} + \Theta_{1}z_{1} + \Theta_{2}z_{2} + \epsilon \\
+  & = \Theta_{0} + \Theta_{1}(\phi_{1}X_{1} +  \phi_{3}X_{3}) + \Theta_{2}(\phi_{2}X_{2}) + \epsilon
+\end{aligned}
+$$
+
+## Dimensionality Reduction Methods
+
+- Again the key here is that we are estimating a model with fewer predictors, thus reducing the *dimensionality* of the model.
+
+- This is especially useful in problems where *p* is large relative to *n*. Variance will be significantly reduced in this case and this is not uncommon in machine learning problems (ie text analysis)
+
+## All dimensionality reduction methods involves two steps
+
+>1. Transformed predictors $Z_{1}, \cdots, Z_{M}$ are first obtained.
+
+>2. A model is fit using the *M* predictors.
+
+>- There are several methods for accomplishing this but we will focus on principal components analysis.
+
+## Principal Components Analysis (PCA)
+
+$$
+\begin{aligned}
+f: \mathcal{X}  & \rightarrow \mathcal{F} \\ 
+\\
+\mathcal{X} \in \mathbb{R}^{n x p} &, \mathcal{F} \in \mathbb{R}^{nxm}; p<<m
+\end{aligned}
+$$
+
+
+- PCA is often discussed in the context of *unsupervised learning* and we'll discuss it in that context later on in the semester.
+
+- It's a popular means of transforming a high dimensional feature space $\mathcal{X}$ into a very low-dimensional space $\mathcal{F}$
+
+
+## Principal Components Analysis (PCA)
+
+- **First principal component** is the dimension along which the data vary the most and would be the most useful for a regression approach.
+
+\footnotesize
+```{r}
+# Predicting political party with votes
+library(mlbench)
+data(HouseVotes84)
+head(HouseVotes84)
+```
+
+## Predicting political party from votes, 1984
+
+\footnotesize
+```{r, echo=FALSE}
+Party<-as.numeric(HouseVotes84$Class)
+Votes<-data.frame(HouseVotes84[,2:dim(HouseVotes84)[2]])
+Votes<-as.matrix(sapply(Votes, as.numeric))
+Votes[is.na(Votes)]<-2
+party.model1<-lm(Party~., data = data.frame(Votes))
+summary(party.model1)
+```
+
+## Predicting political party from votes, 1984
+
+- Can the votes be explained with a single dimension?
+
+```{r,fig.width=4,fig.height=3.5,echo=FALSE}
+Votes.pca <- prcomp(Votes,
+                 center = TRUE,
+                 scale. = TRUE) 
+plot(Votes.pca, type = "l")
+```
+
+
+
+## Predicting political party from votes, 1984
+
+- Can the votes be explained with a single dimension?
+
+\footnotesize
+```{r}
+summary(Votes.pca)
+```
+
+## Predicting political party from votes, 1984
+
+\centering
+\includegraphics[width= \textwidth]{./figs/pca-plot.png}
+
+
+
+## Predicting political party from votes, 1984
+
+- Took 16 dimensions, reduced to 1 or 2 that still explain about 50\% of the variance.
+
+- Can use these dimensions in regression for comparison. 
+
+- Let's just use dimensions one and two
+
+
+## Predicting political party from votes, 1984
+
+$$
+ Party = \Theta_{0} + \Theta \pi_{1} + \Theta_{2}\pi_{2}
+$$
+
+- Took 16 dimensions, reduced to 1 or 2 that still explain about 50\% of the variance.
+
+- Can use these dimensions in regression for comparison. 
+
+- Let's just use dimensions one and two.
+
+
+## Predicting political party from votes, 1984
+
+$$
+ Party = \Theta_{0} + \Theta \pi_{1} + \Theta_{2}\pi_{2}
+$$
+\footnotesize
+
+```{r}
+pi1<-Votes.pca$x[,1]
+pi2<-Votes.pca$x[,2]
+summary(lm(Party~pi1 + pi2))
+```
+
+## Problems with PCA
+- Very sensitive to scaling
+
+- Is a good idea to standardize the predictors.
+
+## For next time
+- Machine learning methods for classification: logistic regression, linear discriminant analysis, k-means clustering, naive bayes.
+
+- Introduction to text analysis.
+
+## Classification
+
+- Linear regression assumes that the outcome Y is quantitative.
+
+- But in most machine learning situations the outcome variable that we're interested in is a class or category of something.
+
+- This is especially true in text analysis where we want to classify documents etc.
+
+- In machine learning, algorithms that conduct classification tasks are known as *classifiers* and we will discuss three of the most popular classifiers: (1) logistic regression, (2) linear discriminant analysis and (3) K-nearest neighbors.
+
+## Classification problems in the real world
+
+- Likelihood of someone having a disease given personal charachteristics, syptoms etc. 
+
+- Recommender systems: what will *Netflix* recommend given things that you've rated and your personal charachteristics?
+
+- What kind of alleles (DNA polymorphisms) are associated with the likelihood of getting a disease? (ie BRCA and breast cancer?)
+
+## Classification problems in social science
+
+- Can we predict political party in the House and Senate based on voting behavior.
+
+- Conversely, can we predict how someone will vote on a bill given past voting behavior, political party and other charachteristics.
+
+- What is the race of an individual given their facial photo?
+
+- Does a document contain violence according to some standard (WHO etc?)
+
+- How wide ranging is the scope of an executive order?
+
+## Do Tweets contain either descriptions or exhortations to violence?
+
+\centering
+\includegraphics[width = .8\textwidth]{./figs/Hong-Kong_map_2014-09-28-11_classified.pdf}
+
+
+## Why not use linear regression for classification?
+
+Tweet Codings: $1=$ Description of violence, $2 =$ Exhortation to violence, $3 =$ No discussion of violence.
+
+- If we use linear regression in this context, the model will infer that there is some kind of meaningful ordering attached to the codings. 
+
+- That 3 is *more than* 2 and 1. 
+
+- When in reality all we are doing is using these as placeholders. 
+
+## Why not use linear regression for classification?
+
+- We could collapse the categories to $1=$ Description OR exhortation to violence, and $0=$ No discussion of violence.
+
+$$ P(Violence | W) = \theta_{0} + \sum_{w}\theta_{w}x_{w} + \epsilon $$ 
+
+-  In this case, regression makes some sense but because this kind of outcome is not continuous we will get $P(Violence | W) < 0$ and $P(Violence | W) > 1$ which does not make sense.
+
+- In the case of a binary predictor, we want to use *logistic regression* which models this situation with greater interpretability and more accurately reflects the way the data is structured.
+
+## Logistic regression
+
+$$ 
+\begin{aligned}
+P(Violence | W) > 0.5 & \text{: Tweet is violent} \\
+P(Violence | W) \leq 0.5 & \text{: Tweet is not violent} \\
+\end{aligned}
+$$ 
+
+- Consider the situation in which we're interested in figuring out whether a Tweet contains some linguistic information which suggests that violence is being referenced or not.
+
+- In this case we would want to build a model which uses the words in a Tweet and gives us a probability of containing some violent content.
+
+- We then set some threshold to 
+
