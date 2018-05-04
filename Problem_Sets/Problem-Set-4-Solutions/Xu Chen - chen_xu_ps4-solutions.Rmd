@@ -1,0 +1,416 @@
+---
+title: '[WWS 586A]: Problem Set 4'
+author: "Jason Anastasopoulos"
+output:
+  html_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+### [WWS 586a] Problem Set 4
+
+For these exercises we will be using the Global Terrorism Database (GTD) which can be found on Kaggle:
+[https://www.kaggle.com/START-UMD/gtd/data](Global Terrorism Database). The GTD contains a great deal of information about terrorist events and contains roughly 170,000 such events. 
+
+### Due Date and Time
+
+Due on Friday, April 27th at 11:59PM
+
+### Guidelines
+
+All problem sets must be submitted as two files:
+
+1. A *R Markdown* file with the following format: "lastname_firstname_ps4.Rmd". Ie. for me this would be: "anastasopoulos_jason_ps4.Rmd"
+
+2. A compiled *R Markdown* file in HTML with the following format: "lastname_firstname_ps4.html" Ie. for me this would be: "anastasopoulos_jason_ps4.html"
+
+Please only fill in the sections labelled "YOUR CODE HERE"
+  
+### Learning about assassinations and bombings through random forests
+
+For this problem set, we will be taking the training wheels off and you will have to use your discretion to train a model using random forests.
+
+The goal of this portion of the assignment is to build a machine learning classifier that will enable you to predict assasination events as a function of the features in the data. 
+
+Assasinations are labeled as "1" in the variable "attacktype1" within the GTD and bombings are labeled as "3".
+Using whichever features you would like and whichever package you would like, train two random forests classifiers to predict assassinations and bombings using an 80/20 training test split. 
+
+Report the: accuracy, specificity, sensitivity and F1 statistics of the classifiers that you trained for each model.
+
+```{r}
+### Code for assasinations classifier
+##### YOUR CODE HERE ###################################
+
+library(pacman)
+
+pacman::p_load(tm,SnowballC,foreign,RCurl,plyr,slam,foreign,wordcloud,LiblineaR,e1071,caret,ranger,rpart,rpart.plot)
+
+# localdir = "/Users/xuc/Documents/WWS586a/WWS586A-Machine-Learning-Policy-Analysis
+#             /Problem_Sets/Problem-Set-4/"
+# setwd(localdir)
+
+# Read data
+GTD <- read.csv("globalterrorismdb_0617dist.csv")
+
+# Choose the following 20 features to train my models
+cols = c("attacktype1","iyear","imonth","extended","crit1","crit2","crit3","doubtterr","multiple","region","success","suicide","targtype1","weaptype1","individual","natlty1","ishostkid","nkill","nwound","property")
+
+gtd <- GTD[ , cols]
+summary(gtd)
+dim(gtd)
+
+# Delete missing values from data
+gtd[gtd==-9] <- NA
+gtd = na.omit(gtd)
+
+# Variable "weaptype1" and "targtype1" contains categorical information, expand to dummy variables
+# These dummies don't necessarrily imprive performance, but tell more information about, for example, which weapon
+# or which region is an important feature
+
+gtd[,"weaptype1"] = as.factor(gtd[,"weaptype1"])
+gtd[,"targtype1"] = as.factor(gtd[,"targtype1"])
+gtd[,"region"] = as.factor(gtd[,"region"])
+gtd = data.frame(model.matrix(~.-1, gtd))
+
+# Now the number of variables have increased due to the inclusion of dummies
+dim(gtd)
+View(gtd)
+
+gtd_a <- gtd
+gtd_a$attacktype1 = ifelse(gtd$attacktype1==1, 1, 0)
+
+# Train a randorm forest model for assasination
+train_id = sample(1:dim(gtd_a)[1], dim(gtd_a)[1]*0.8)
+train_a = gtd_a[train_id,]
+test_a = gtd_a[-train_id,]
+
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
+
+set.seed(333)
+
+# Because question #2 asks for feature importance evaluated by % increase of MSE, 
+# here when training the model, I use "permutation" instead of "impurity" as measure of importance.
+# Using "impurity" takes much shorter time ...
+rf_fit1<-ranger(factor(attacktype1)~., data=train_a, 
+                                       importance='permutation',
+                                       write.forest=TRUE,
+                                       probability=TRUE)
+
+# Visualize decision tree
+trees=rpart(factor(attacktype1)~., train_a)
+rpart.plot(trees)
+
+# Predict on test data
+rf_probs<-predict(rf_fit1, test_a)
+
+rf_class<-ifelse(rf_probs$predictions[,2] > 0.5, 1, 0)
+
+hist(rf_probs$predictions[,2])
+# Histogram shows relatively good performance of the model.
+
+# Performance 
+confusion<-table(rf_class, factor(test_a$attacktype1))
+confusion
+
+TP_a = confusion[2,2]
+TN_a = confusion[1,1]
+FP_a = confusion[2,1]
+FN_a = confusion[1,2]
+
+accuracy_a = (TP_a+TN_a)/(TP_a+TN_a+FP_a+FN_a)
+specificity_a = TN_a/(TN_a+FP_a)
+sensitivity_a = TP_a/(TP_a+FN_a)
+f1_a = 2*TP_a/(2*TP_a+FP_a+FN_a)
+
+cat(sprintf("Accuracy: %6.3f \nSpecificity: %6.3f \nSensitivity: %6.3f \nF1 score: %6.3f", accuracy_a, specificity_a, sensitivity_a, f1_a))
+print("Sensitivity is not as good performance as specificity because in this case, there is a small portion of assisinations in the training data, so type II error is more prevalent. ")
+
+##### YOUR CODE HERE ###################################
+```
+
+
+
+```{r}
+### Code for bombings classifier
+##### YOUR CODE HERE ###################################
+
+gtd_b <- gtd
+gtd_b$attacktype1 = ifelse(gtd$attacktype1==3, 1, 0)
+
+# Train a random forest model for bombings
+train_id = sample(1:dim(gtd_b)[1], dim(gtd_b)[1]*0.8)
+train_b = gtd_b[train_id,]
+test_b = gtd_b[-train_id,]
+
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
+
+set.seed(3333)
+
+rf_fit2<-ranger(factor(attacktype1)~., data=train_b, 
+                                       importance='permutation',
+                                       write.forest=TRUE,
+                                       probability=TRUE)
+
+# Visualize the decision tree
+trees=rpart(factor(attacktype1)~., train_b)
+rpart.plot(trees)
+
+# We see that "weapon type #6" is the single most important feature for bombing classifier.
+
+rf_probs<-predict(rf_fit2, test_b)
+
+rf_class<-ifelse(rf_probs$predictions[,2] > 0.5, 1, 0)
+
+hist(rf_probs$predictions[,2])
+# The histogram shows that this is a pretty good classifier.
+
+# Performance 
+confusion<-table(rf_class, factor(test_b$attacktype1))
+confusion
+
+TP_b = confusion[2,2]
+TN_b = confusion[1,1]
+FP_b = confusion[2,1]
+FN_b = confusion[1,2]
+
+accuracy_b = (TP_b+TN_b)/(TP_b+TN_b+FP_b+FN_b)
+specificity_b = TN_b/(TN_b+FP_b)
+sensitivity_b = TP_b/(TP_b+FN_b)
+f1_b = 2*TP_b/(2*TP_b+FP_b+FN_b)
+
+cat(sprintf("Accuracy: %6.3f \nSpecificity: %6.3f \nSensitivity: %6.3f \nF1 score: %6.3f", accuracy_b, specificity_b, sensitivity_b, f1_b))
+
+##### YOUR CODE HERE ###################################
+```
+
+### 2. Which features predict assasinations and bombings best?
+
+One of the best things about the random forests algorithm is that it allows us to understand which features contributed most to prediction success. 
+
+Create a plot of the top 10 most important features for each classifier using the % increase in MSE estimate to determine feature importance. 
+
+```{r}
+### Plot for assasinations classifier
+##### YOUR CODE HERE ###################################
+
+varimp_a = rf_fit1$variable.importance
+
+features<-names(varimp_a)
+importance<-as.vector(varimp_a)
+importance.data = data.frame(features,importance)
+
+# Rank the importance of the features
+importance.data = importance.data[order(-importance.data$importance),]
+importance.data = importance.data[1:10,]
+
+# Now we can use ggplot2 to create the plot
+# Plot variable importance 
+ggplot(importance.data, 
+       aes(x=reorder(features,importance), y=importance,fill=importance))+ 
+       geom_bar(stat="identity", position="dodge")+ coord_flip()+
+       ylab("Variable Importance")+
+       xlab("")+
+       ggtitle("Feature Importance Plot for Assasination Classifier Using Random Forest")+
+       guides(fill=F)+
+       scale_fill_gradient(low="pink", high="purple")
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+```{r}
+### Plot for bombings classifier
+##### YOUR CODE HERE ###################################
+
+varimp_b = rf_fit2$variable.importance
+
+features<-names(varimp_b)
+importance<-as.vector(varimp_b)
+importance.data = data.frame(features,importance)
+
+importance.data = importance.data[order(-importance.data$importance),]
+importance.data = importance.data[1:10,]
+
+# Now we can use ggplot2 to create the plot
+# Plot variable importance 
+ggplot(importance.data, 
+       aes(x=reorder(features,importance), y=importance,fill=importance))+ 
+       geom_bar(stat="identity", position="dodge")+ coord_flip()+
+       ylab("Variable Importance")+
+       xlab("")+
+       ggtitle("Feature Importance Plot for Bombing Classifier Using Random Forest")+
+       guides(fill=F)+
+       scale_fill_gradient(low="pink", high="purple")
+
+
+##### YOUR CODE HERE ###################################
+```
+
+
+### 3. Lasso classification of assasinations and bombings
+
+Using logistic regression with  $L_1$ regularization (logistic regression lasso), train a model with the same features that you used for your decision tree classifiers above using an 80/20 train/test split. 
+
+Report the accuracy, specificity, sensistivity and F1 statistics for the trained logistic regression classifier for assasinations and bombings
+
+```{r}
+### Code for assasinations classifier
+##### YOUR CODE HERE ###################################
+
+require(glmnet)
+
+x_train = as.matrix(train_a[,-1])
+x_test = as.matrix(test_a[,-1])
+
+# Train a Lasso classifier for assasinations                       
+cv.lasso1 <- cv.glmnet(x=x_train, y=as.factor(train_a[,1]), family='binomial', alpha=1,
+                       standardize=TRUE, type.measure='auc')
+plot(cv.lasso1)
+
+plot(cv.lasso1$glmnet.fit, xvar="lambda", label=TRUE)
+cv.lasso1$lambda.min
+cv.lasso1$lambda.1se
+
+# Print coefficients
+coef(cv.lasso1, s=cv.lasso1$lambda.min)
+
+# Predict using test data
+lasso_probs_1<-predict(cv.lasso1, x_test, type="response")
+
+lasso_class_1<-ifelse(lasso_probs_1 > 0.5, 1, 0)
+hist(lasso_probs_1)
+
+# Performance 
+confusion<-table(lasso_class_1, factor(test_a$attacktype1))
+confusion
+
+TP = confusion[2,2]
+TN = confusion[1,1]
+FP = confusion[2,1]
+FN = confusion[1,2]
+
+accuracy_a = (TP+TN)/(TP+TN+FP+FN)
+specificity_a = TN/(TN+FP)
+sensitivity_a = TP/(TP+FN)
+f1_a = 2*TP/(2*TP+FP+FN)
+
+cat(sprintf("Accuracy: %6.3f \nSpecificity: %6.3f \nSensitivity: %6.3f \nF1 score: %6.3f", accuracy_a, specificity_a, sensitivity_a, f1_a))
+
+##### YOUR CODE HERE ###################################
+```
+
+
+
+```{r}
+### Code for bombings classifier
+##### YOUR CODE HERE ###################################
+
+x_train_b = as.matrix(train_b[,-1])
+x_test_b = as.matrix(test_b[,-1])
+
+# Train a Lasso classifier for bombings                      
+cv.lasso2 <- cv.glmnet(x=x_train_b, y=as.factor(train_b[,1]), family='binomial', alpha=1,
+                       standardize=TRUE, type.measure='auc')
+plot(cv.lasso2)
+
+coef(cv.lasso2, s=cv.lasso2$lambda.min)
+
+# Predict using test data
+# Histogram of predictions
+lasso_probs_2<-predict(cv.lasso2, x_test_b, type="response")
+hist(lasso_probs_2)
+
+lasso_class_2<-ifelse(lasso_probs_2 > 0.5, 1, 0)
+
+# Performance 
+confusion<-table(lasso_class_2, factor(test_b$attacktype1))
+confusion
+
+TP = confusion[2,2]
+TN = confusion[1,1]
+FP = confusion[2,1]
+FN = confusion[1,2]
+
+accuracy_b = (TP+TN)/(TP+TN+FP+FN)
+specificity_b = TN/(TN+FP)
+sensitivity_b = TP/(TP+FN)
+f1_b = 2*TP/(2*TP+FP+FN)
+
+cat(sprintf("Accuracy: %6.3f \nSpecificity: %6.3f \nSensitivity: %6.3f \nF1 score: %6.3f", accuracy_b, specificity_b, sensitivity_b, f1_b))
+
+##### YOUR CODE HERE ###################################
+```
+
+
+
+
+### 4. Features predicting bombings and assisnations best using the lasso.  
+
+Create a plot of the top 10 most important features for each classifier using the coefficient estimates from the lasso model. As long as you standardized your data when you estimated the lasso model, the coefficient estimates will be on the same scale.
+
+```{r}
+### Plot for assasinations classifier
+##### YOUR CODE HERE ###################################
+
+features<-names(train_a[-1])
+importance<-as.vector(abs(coef(cv.lasso1)[-1]))
+
+importance.data = data.frame(features,importance)
+
+# Reorder the data frame in descending order
+importance.data = importance.data[order(-importance.data$importance),]
+importance.data = importance.data[1:10,]
+
+# Now we can use ggplot2 to create the plot
+# Plot variable importance 
+ggplot(importance.data, 
+       aes(x=reorder(features,importance), y=importance,fill=importance))+ 
+       geom_bar(stat="identity", position="dodge")+ coord_flip()+
+       ylab("Variable Importance")+
+       xlab("")+
+       ggtitle("Feature Importance Plot for Assasination Classifier Using Lasso Regression")+
+       guides(fill=F)+
+       scale_fill_gradient(low="pink", high="purple")
+
+##### YOUR CODE HERE ###################################
+```
+
+
+```{r}
+### Plot for bombings classifier
+##### YOUR CODE HERE ###################################
+
+features<-names(train_b[-1])
+importance<-as.vector(abs(coef(cv.lasso2)[-1]))
+
+importance.data = data.frame(features,importance)
+
+# Reorder the data frame in descending order
+importance.data = importance.data[order(-importance.data$importance),]
+importance.data = importance.data[1:10,]
+
+# Now we can use ggplot2 to create the plot
+# Plot variable importance 
+ggplot(importance.data, 
+       aes(x=reorder(features,importance), y=importance,fill=importance))+ 
+       geom_bar(stat="identity", position="dodge")+ coord_flip()+
+       ylab("Variable Importance")+
+       xlab("")+
+       ggtitle("Feature Importance Plot for Bombing Classifier Using Lasso Regression")+
+       guides(fill=F)+
+       scale_fill_gradient(low="pink", high="purple")
+
+##### YOUR CODE HERE ###################################
+```
+
+
+
+
+
+
+
+
+
+
+
