@@ -1,0 +1,199 @@
+---
+title: '[WWS 586A]: Problem Set 5'
+author: "Xu Chen"
+output:
+  html_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+### [WWS 586a] Problem Set 5
+
+For these exercises we will be estimating a topic model and exploring patterns in a collection of religious and spiritual documents [https://www.kaggle.com/metron/public-files-of-religious-and-spiritual-texts/data](https://www.kaggle.com/metron/public-files-of-religious-and-spiritual-texts/data). 
+
+In addition to figuring out the topics in these collection of documents we will also be classifying the documents themselves by topics. All of the texts can be found on our class Github Site: [https://github.com/ljanastas/WWS586A-Machine-Learning-Policy-Analysis/tree/master/Data](https://github.com/ljanastas/WWS586A-Machine-Learning-Policy-Analysis/tree/master/Data).
+
+### Due Date and Time
+
+Due on Monday, May 14th at 11:59PM
+
+### Guidelines
+
+All problem sets must be submitted as two files:
+
+1. A *R Markdown* file with the following format: "lastname_firstname_ps5.Rmd". Ie. for me this would be: "anastasopoulos_jason_ps4.Rmd"
+
+2. A compiled *R Markdown* file in HTML with the following format: "lastname_firstname_ps5.html" Ie. for me this would be: "anastasopoulos_jason_ps5.html"
+
+Please only fill in the sections labelled "YOUR CODE HERE"
+  
+### Learning about religious texts with topic models
+
+For this problem set, we will be using topic models to learn about the content of a group of spiritual and religious texts. This problem set will involve starting with the texts in their raw form which can be found here: [https://github.com/ljanastas/WWS586A-Machine-Learning-Policy-Analysis/tree/master/Data/Kaggle%20Project%20Metron1](https://github.com/ljanastas/WWS586A-Machine-Learning-Policy-Analysis/tree/master/Data/Kaggle%20Project%20Metron1).
+
+### 1. Pre-processing. 
+
+First read the raw texts into *R*, clean them using some variant of the "text_cleaner()" function that we've been using and place them in a document term matrix with 90% sparsity using text-frequency (default value) weighting. 
+
+Be sure to use the "readtext()" function to read the documents into R. 
+
+```{r}
+##### YOUR CODE HERE ###################################
+library(pacman)
+pacman::p_load(tm,SnowballC,plyr,
+               slam,foreign,
+               caret,ranger,rpart,rpart.plot,readtext,topicmodels)
+
+corpus <- readtext("/Users/xuc/Documents/WWS586a/WWS586A-Machine-Learning-Policy-Analysis/Data/Kaggle Project Metron1/*")
+
+text_cleaner<-function(corpus) {
+  tempcorpus = lapply(corpus,toString)
+  for(i in 1:length(tempcorpus)){
+    tempcorpus[[i]]<-iconv(tempcorpus[[i]], "ASCII", "UTF-8", sub="")
+  }
+  tempcorpus = lapply(tempcorpus, tolower)
+  tempcorpus <- Corpus(VectorSource(tempcorpus))
+  # Remove special words that are not related to contents
+  toSpace <- content_transformer(function (x , pattern) gsub(pattern, "", x))
+  tempcorpus <- tm_map(tempcorpus, toSpace, "page")
+  tempcorpus <- tm_map(tempcorpus, toSpace, "appendix")
+  tempcorpus <- tm_map(tempcorpus, toSpace, "chapter")
+  tempcorpus <- tm_map(tempcorpus, toSpace, "etc")
+  tempcorpus <- tm_map(tempcorpus, toSpace, "section")
+  tempcorpus <- tm_map(tempcorpus, toSpace, "text")
+  # Remove number, punctuation, stop words, stemming, etc.
+  tempcorpus <- tm_map(tempcorpus, removeNumbers)
+  tempcorpus <- tm_map(tempcorpus, removePunctuation)
+  tempcorpus <- tm_map(tempcorpus, removeWords, stopwords("english"))
+  tempcorpus <- tm_map(tempcorpus, stemDocument)
+  tempcorpus <- tm_map(tempcorpus, stripWhitespace)
+  return(tempcorpus)
+}
+
+corpus_text <- corpus$text
+newcorpus <- text_cleaner(corpus_text)
+
+# Create a document term matrix
+dtm <- DocumentTermMatrix(newcorpus)
+
+# Reduce sparsity
+dtm = removeSparseTerms(dtm, 0.90) 
+
+# Hint: After you reduce sparsity, you will have to delete some rows from the DTM, use this code as a guide.
+dtmtopic <- dtm[rowSums(as.matrix(dtm))>0, ]
+
+print(dim(dtm) == dim(dtmtopic))
+# In this case dimension doesn't change, meaning no rows are deleted
+
+##### YOUR CODE HERE ###################################
+```
+
+
+### 2. Topic model estimation
+
+Estimate a k = 4, 6 and 8 topic topic model. Report the top 5 terms from each model. 
+
+
+```{r}
+##### YOUR CODE HERE ###################################
+
+dtm_topic <- as.matrix(dtmtopic)
+textreference <- corpus_text[rowSums(as.matrix(dtm))> 0]
+
+set.seed(100)
+tp_model_4 <- LDA(dtm_topic, k = 4, method="Gibbs")
+#terms(tp_model_4, k=10)
+terms(tp_model_4, k=5)
+
+tp_model_6 <- LDA(dtm_topic, k = 6, method="Gibbs")
+#terms(tp_model_6, k=10)
+terms(tp_model_6, k=5)
+
+tp_model_8 <- LDA(dtm_topic, k = 8, method="Gibbs")
+#terms(tp_model_8, k=10)
+terms(tp_model_8, k=5)
+
+##### YOUR CODE HERE ###################################
+```
+
+### 3. Interpretation
+
+Choose one of the models from the one that you estimated above. Interpret the topics the model that you chose by labeling each. 
+
+
+```{r}
+##### WRITE LABELS AND CORRESPONDING TOPICS HERE ###################################
+
+# Choose the model with k=6
+
+# Category 1: Nature/life/spirit
+# Category 2: Christianism
+# Category 3: Buddhism
+# Category 4: Agni
+# category 5: Islamism
+# category 6: Hinduism
+
+topic_label = c("Nature/life/spirit", "Christianism", "Buddhism", 
+                "Agni", "Islamism", "Hinduism")
+
+
+##### WRITE LABELS AND CORRESPONDING TOPICS HERE ###################################
+```
+
+### 4. Classification
+
+Using posterior estimation, estimate the topic proportions for each of the documents for your final model. Classify each of the documents into topics by selecting the highest probability topic. For each topic, report the filenames of the documents in each topic.
+
+Do these make sense to you?
+
+```{r}
+##### YOUR CODE HERE ###################################
+
+# Posterior estimation, choose model with k = 6
+posterior_inference <- posterior(tp_model_6)
+
+posterior_term_dist <- posterior_inference$terms
+posterior_topic_dist <- posterior_inference$topics 
+
+# Distribution over terms
+dim(posterior_term_dist)
+posterior_term_dist[ ,1:5]
+
+# Transpose to term definition matrix
+posterior_term_dist = t(posterior_term_dist)
+posterior_term_dist[1:5,]
+
+# Topic proportions for each document
+dim(posterior_topic_dist)
+posterior_topic_dist[1:5, ]
+
+# Classify each of the documents into topics based on the hightest probability
+maxtopic<-c()
+
+for(i in 1:dim(posterior_topic_dist)[1]){
+  label = as.vector(which(posterior_topic_dist[i,] == max(posterior_topic_dist[i,])))[1]
+  maxtopic[i]<-label
+}
+
+# Each topic contains some documents
+table(maxtopic)
+
+# Report the filenames of the documents in each topic
+for (category in 1:6) {
+  cat("Category: ", topic_label[category], "\n")
+  cat(corpus$doc_id[which(maxtopic == category)], sep="\n")
+  cat("\n")
+}
+
+# Most of the documents make sense for the topic labeled. 
+
+# Category #2, #3, #4, and #6 make pretty good sense.
+
+# Category #1 may be revised to Occultism.
+# Because they all talk about supersensible realities, Mystics, Gnostics, all speak of a world of soul and spirit.
+
+# Category #5 is the most difficult to label, becuase it includes various document, including Christian, Bahá'í, etc.
+
+
+##### YOUR CODE HERE ###################################
+```
