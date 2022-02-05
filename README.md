@@ -1,5 +1,5 @@
 # WWS586A-Machine-Learning-Policy-Analysis
-Materials from my Princeton University course WWS586A: Machine Learning for Policy Analysis
+Materials from the Princeton University course WWS586A: Machine Learning for Policy Analysis taught by professor [Lefteris Anastasopoulos](https://anastasopoulos.io/)
 
 ## Topics covered
 
